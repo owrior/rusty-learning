@@ -1,12 +1,12 @@
 import pytest
 import numpy as np 
 
-@pytest.feature
+@pytest.fixture
 def linearly_related_data():
     return np.array(
-        [1, 1.1],
+        [[1, 1.1],
         [2, 2.4],
         [3, 3.2],
         [4, 4.7],
-        [5, 5.8],
+        [5, 5.8]]
     )

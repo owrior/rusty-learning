@@ -9,5 +9,6 @@ name = "rusty_learning"
 crate-type = ["cdylib"]
 
 [dependencies]
-nalgebra = "0.31.4"
-pyo3 = { version = "0.16.5", features = ["extension-module"] }
+ndarray = "0.15.6"
+numpy = "0.18.0"
+pyo3 = { version = "0.18.1", features = ["extension-module"] }
