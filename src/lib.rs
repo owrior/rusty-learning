@@ -45,7 +45,7 @@ mod perceptron {
     }
 
     fn accuracy(error: Array2<f64>) -> Array2<f64> {
-        let acc = vec![1 - error.map(|a| a.powi(2)).mean().unwrap()];
+        let acc = vec![1.0 - error.map(|a| a.powi(2)).mean().unwrap()];
         Array2::from_shape_vec((1, 1), acc).unwrap()
     }
 
