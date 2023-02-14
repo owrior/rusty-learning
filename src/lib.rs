@@ -33,6 +33,8 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 mod perceptron {
+    use std::ops::{AddAssign, Mul};
+
     use numpy::ndarray::{s, Array2, ArrayView2};
 
     pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
@@ -61,26 +63,23 @@ mod perceptron {
         let mut error: Array2<f64> = Array2::zeros((x_size, 1));
 
         for _epoch in 0..n_epoch {
-            let res = predict(&weights.view(), &x);
-            error = y - res;
-            let mut weight_count = 0;
-            weights = weights.map(|v| {
-                let res = match weight_count {
-                    0 => v + error.map(|e| alpha * e).sum(),
-                    _ => {
-                        let mut x_count = 0;
-                        v + x
-                            .slice(s![.., weight_count - 1])
-                            .map(|xij| {
-                                x_count += 1;
-                                alpha * error[[x_count - 1, 0]] * xij
-                            })
-                            .sum()
-                    }
-                };
-                weight_count += 1;
-                res
-            });
+            let y_hat = predict(&weights.view(), &x);
+            error = y - y_hat;
+
+            for idx in 0..x_size {
+                weights
+                    .slice_mut(s![0, 0])
+                    .add_assign(&error.slice(s![idx, 0]).mul(alpha));
+
+                for weight_idx in 0..features - 1 {
+                    weights.slice_mut(s![weight_idx + 1, 0]).add_assign(
+                        &error
+                            .slice(s![idx, 0])
+                            .mul(&x.slice(s![idx, weight_idx]))
+                            .mul(alpha),
+                    );
+                }
+            }
         }
         let acc = accuracy(error);
         (weights, acc)
