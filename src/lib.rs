@@ -33,7 +33,7 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 mod perceptron {
-    use numpy::ndarray::{s, Array2, ArrayView2, Axis};
+    use numpy::ndarray::{s, Array2, ArrayView2};
 
     pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
         let res1 = &weights.slice(s![0, ..]);
@@ -62,17 +62,21 @@ mod perceptron {
 
         for _epoch in 0..n_epoch {
             let res = predict(&weights.view(), &x);
-            error = res - y;
+            error = y - res;
             let mut weight_count = 0;
             weights = weights.map(|v| {
                 let res = match weight_count {
-                    0 => error.map(|e| v + alpha * e).sum(),
-                    _ => error
-                        .map(|e| {
-                            x.map_axis(Axis(0), |xi| v + alpha * e * xi[weight_count])
-                                .sum()
-                        })
-                        .sum(),
+                    0 => v + error.map(|e| alpha * e).sum(),
+                    _ => {
+                        let mut x_count = 0;
+                        v + x
+                            .slice(s![.., weight_count - 1])
+                            .map(|xij| {
+                                x_count += 1;
+                                alpha * error[[x_count - 1, 0]] * xij
+                            })
+                            .sum()
+                    }
                 };
                 weight_count += 1;
                 res

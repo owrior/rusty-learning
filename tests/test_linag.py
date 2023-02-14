@@ -12,5 +12,5 @@ def test_perceptron_predict(linearly_related_data):
 def test_perceptron_predict(linearly_related_data):
     x = linearly_related_data[0]
     y = linearly_related_data[1]
-    res = rl.train(x, y, 0.1, 5)
+    res = rl.train(x, y, 0.01, 10)
     print(res)
