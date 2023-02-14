@@ -4,12 +4,13 @@ import numpy as np
 
 
 def test_perceptron_predict(linearly_related_data):
-    weights = np.array([10.0, 2, 3])
+    weights = np.array([[10.0], [2], [3]])
     res = rl.predict(weights, linearly_related_data)
     print(res)
 
 
 def test_perceptron_predict(linearly_related_data):
-    y = np.array([1.0, 1, 0, 0, 0])
-    res = rl.train(linearly_related_data, y, 0.01, 100)
+    x = linearly_related_data[0]
+    y = linearly_related_data[1]
+    res = rl.train(x, y, 0.1, 5)
     print(res)
