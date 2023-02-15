@@ -61,7 +61,7 @@ def test_perceptron_train(separable_data):
     assert 1 - ((y - y_hat.flatten()) ** 2).mean() == accuracy
 
 
-def test_perceptron_train_performance(separable_data):
+def test_benchmark_perceptron_train(separable_data):
     X, y = separable_data
 
     # Calculate rust implemted time
