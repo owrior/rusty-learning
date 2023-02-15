@@ -33,15 +33,16 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 mod perceptron {
+    use std::ops::AddAssign;
+
     use numpy::ndarray::{s, Array2, ArrayView2};
 
     pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
-        let res1 = &weights.slice(s![0, ..]);
+        let bias = &weights.slice(s![0, ..]);
         let _weights = &weights.slice(s![1..;-1, ..]);
-        let res2 = x.dot(_weights);
-        let res = res1 + res2;
+        let activation = x.dot(_weights) + bias;
         // Return activation
-        res.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
+        activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
     }
 
     fn accuracy(error: Array2<f64>) -> Array2<f64> {
@@ -61,26 +62,23 @@ mod perceptron {
         let mut error: Array2<f64> = Array2::zeros((x_size, 1));
 
         for _epoch in 0..n_epoch {
-            let res = predict(&weights.view(), &x);
-            error = y - res;
-            let mut weight_count = 0;
-            weights = weights.map(|v| {
-                let res = match weight_count {
-                    0 => v + error.map(|e| alpha * e).sum(),
-                    _ => {
-                        let mut x_count = 0;
-                        v + x
-                            .slice(s![.., weight_count - 1])
-                            .map(|xij| {
-                                x_count += 1;
-                                alpha * error[[x_count - 1, 0]] * xij
-                            })
-                            .sum()
+            let y_hat = predict(&weights.view(), &x);
+            error = y - y_hat;
+
+            for it in x.outer_iter().zip(error.outer_iter()) {
+                let (xi, e) = it;
+                let update = e[[0]] * alpha;
+                let mut weight_count = 0;
+                for mut w in weights.outer_iter_mut() {
+                    if weight_count == 0 {
+                        w.slice_mut(s![0]).add_assign(update);
+                    } else {
+                        w.slice_mut(s![0])
+                            .add_assign(xi[[2 - weight_count]] * update);
                     }
-                };
-                weight_count += 1;
-                res
-            });
+                    weight_count += 1;
+                }
+            }
         }
         let acc = accuracy(error);
         (weights, acc)

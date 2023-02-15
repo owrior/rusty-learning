@@ -1,23 +1,9 @@
 import pytest
-import numpy as np
+from sklearn import datasets
 
 
 @pytest.fixture
-def linearly_related_data():
-    return (
-        np.array(
-            [
-                [2.7810836, 2.550537],
-                [1.46548937, 2.36212508],
-                [3.39656169, 4.40029353],
-                [1.38807019, 1.85022032],
-                [3.06407232, 3.00530597],
-                [7.62753121, 2.75926224],
-                [5.33244125, 2.08862677],
-                [6.92259672, 1.77106367],
-                [8.67541865, -0.24206865],
-                [7.67375647, 3.50856301],
-            ]
-        ),
-        np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]).reshape((-1, 1)),
+def separable_data():
+    return datasets.make_blobs(
+        n_features=2, n_samples=150, centers=2, cluster_std=1.05, random_state=2
     )
