@@ -1,3 +1,4 @@
+use numpy::ndarray::s;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::{prelude::*, types::PyTuple};
 
@@ -24,9 +25,13 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
         weights: PyReadonlyArray1<f64>,
         x: PyReadonlyArray2<f64>,
     ) -> &'py PyArray2<f64> {
-        let weights_array = weights.as_array();
+        let weights_array = weights.to_owned_array();
         let x_array = x.as_array();
-        let res = perceptron::predict(&weights_array, &x_array);
+
+        let bias = weights_array[[0]];
+        let _weights = weights_array.slice_move(s![1..]);
+
+        let res = perceptron::predict(&bias, &_weights, &x_array);
         res.into_pyarray(py)
     }
     Ok(())
@@ -35,17 +40,12 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 mod perceptron {
     use std::ops::AddAssign;
 
-    use numpy::ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+    use numpy::ndarray::{arr1, s, Array1, Array2, ArrayView2, Axis};
 
-    pub fn predict(weights: &ArrayView1<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
-        let features = x.dim().1 + 1;
-
-        let bias = &weights.slice(s![0]);
-        let _weights = &weights
-            .slice(s![1..])
-            .into_shape((features - 1, 1))
-            .unwrap();
-        let activation = x.dot(_weights) + bias;
+    pub fn predict(bias: &f64, _weights: &Array1<f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
+        let features = x.dim().1;
+        let weights = _weights.slice(s![..]).into_shape((features, 1)).unwrap();
+        let activation = x.dot(&weights).mapv(|v| v + bias);
         // Return activation
         activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
     }
@@ -61,30 +61,27 @@ mod perceptron {
         alpha: f64,
         n_epoch: i64,
     ) -> (Array1<f64>, Array1<f64>) {
-        let features = x.dim().1 + 1;
+        let features = x.dim().1;
         let x_size = x.dim().0;
+        let mut bias: f64 = 0.0;
         let mut weights: Array1<f64> = Array1::zeros(features);
         let mut error: Array2<f64> = Array2::zeros((x_size, 1));
 
         for _epoch in 0..n_epoch {
-            let y_hat = predict(&weights.view(), &x);
+            let y_hat = predict(&bias, &weights, &x);
             error = y - y_hat;
 
             for it in x.outer_iter().zip(error.outer_iter()) {
                 let (xi, e) = it;
                 let update = e[[0]] * alpha;
-                let mut weight_count = 0;
-                for w in weights.iter_mut() {
-                    if weight_count == 0 {
-                        w.add_assign(update);
-                    } else {
-                        w.add_assign(xi[[weight_count - 1]] * update);
-                    }
-                    weight_count += 1;
-                }
+
+                bias += update;
+                weights.add_assign(&xi.map(|v| v * update));
             }
         }
         let acc = accuracy(error);
-        (weights, acc)
+        let mut weights_res = arr1(&[bias]);
+        weights_res.append(Axis(0), weights.view()).unwrap();
+        (weights_res, acc)
     }
 }
