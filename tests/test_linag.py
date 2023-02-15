@@ -2,11 +2,12 @@ import pytest
 import rusty_learning as rl
 import numpy as np
 import timeit
+from sklearn.linear_model import Perceptron as SKPerceptron
 
 TIMEIT_NUMBER = 10
 
 
-class Perceptron:
+class BasicPerceptron:
     def __init__(self, learning_rate=0.01, n_iters=1000):
         self.lr = learning_rate
         self.n_iters = n_iters
@@ -76,11 +77,21 @@ def test_benchmark_perceptron_train(separable_data):
     )
 
     # Calculate pure python numpy time
-    p = Perceptron(learning_rate=0.01, n_iters=1000)
+    p = BasicPerceptron(learning_rate=0.01, n_iters=1000)
     python_time = np.round(
         timeit.timeit(lambda: p.fit(X, y), number=TIMEIT_NUMBER), decimals=2
     )
 
     print(
-        f"Rust implementation: {rl_time}, Numpy implementation: {python_time}\nMultiple: {python_time / rl_time}"
+        f"Rust implementation: {rl_time}, Numpy implementation: {python_time}\nMultiple: {python_time / rl_time}\n"
+    )
+
+    # Calculate pure python numpy time
+    p = SKPerceptron(alpha=0.01, max_iter=1000)
+    python_time = np.round(
+        timeit.timeit(lambda: p.fit(X, y), number=TIMEIT_NUMBER), decimals=2
+    )
+
+    print(
+        f"Rust implementation: {rl_time}, Sklearn implementation: {python_time}\nMultiple: {python_time / rl_time}"
     )
