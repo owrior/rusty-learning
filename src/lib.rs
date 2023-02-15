@@ -33,17 +33,16 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 mod perceptron {
-    use std::ops::{AddAssign, Mul};
+    use std::ops::AddAssign;
 
     use numpy::ndarray::{s, Array2, ArrayView2};
 
     pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
-        let res1 = &weights.slice(s![0, ..]);
+        let bias = &weights.slice(s![0, ..]);
         let _weights = &weights.slice(s![1..;-1, ..]);
-        let res2 = x.dot(_weights);
-        let res = res1 + res2;
+        let activation = x.dot(_weights) + bias;
         // Return activation
-        res.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
+        activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
     }
 
     fn accuracy(error: Array2<f64>) -> Array2<f64> {
@@ -66,18 +65,18 @@ mod perceptron {
             let y_hat = predict(&weights.view(), &x);
             error = y - y_hat;
 
-            for idx in 0..x_size {
-                weights
-                    .slice_mut(s![0, 0])
-                    .add_assign(&error.slice(s![idx, 0]).mul(alpha));
-
-                for weight_idx in 0..features - 1 {
-                    weights.slice_mut(s![weight_idx + 1, 0]).add_assign(
-                        &error
-                            .slice(s![idx, 0])
-                            .mul(&x.slice(s![idx, weight_idx]))
-                            .mul(alpha),
-                    );
+            for it in x.outer_iter().zip(error.outer_iter()) {
+                let (xi, e) = it;
+                let update = e[[0]] * alpha;
+                let mut weight_count = 0;
+                for mut w in weights.outer_iter_mut() {
+                    if weight_count == 0 {
+                        w.slice_mut(s![0]).add_assign(update);
+                    } else {
+                        w.slice_mut(s![0])
+                            .add_assign(xi[[2 - weight_count]] * update);
+                    }
+                    weight_count += 1;
                 }
             }
         }
