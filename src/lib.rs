@@ -47,6 +47,10 @@ mod perceptron {
         let weights = _weights.slice(s![..]).into_shape((features, 1)).unwrap();
         let activation = x.dot(&weights).mapv(|v| v + bias);
         // Return activation
+        step_function(activation)
+    }
+
+    fn step_function(activation: Array2<f64>) -> Array2<f64> {
         activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
     }
 
