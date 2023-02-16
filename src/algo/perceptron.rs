@@ -34,6 +34,10 @@ pub fn train(
         error = y - y_hat;
         let update = error.map(|e| e * alpha);
 
+        if update.map(|v| v.powi(2)).sum() == 0.0 {
+            break;
+        };
+
         weights.slice_mut(s![0, ..]).add_assign(update.sum());
 
         let update = update
