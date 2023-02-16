@@ -2,17 +2,20 @@ use std::ops::AddAssign;
 
 use numpy::ndarray::{s, Array2, ArrayView2};
 
+fn accuracy(error: Array2<f64>) -> Array2<f64> {
+    let acc = vec![1.0 - error.map(|a| a.powi(2)).mean().unwrap()];
+    Array2::from_shape_vec((1, 1), acc).unwrap()
+}
+
+fn unit_step_function(activation: Array2<f64>) -> Array2<f64> {
+    activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
+}
+
 pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
     let bias = &weights.slice(s![0, ..]);
     let _weights = &weights.slice(s![1.., ..]);
     let activation = x.dot(_weights) + bias;
-    // Return activation
-    activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
-}
-
-fn accuracy(error: Array2<f64>) -> Array2<f64> {
-    let acc = vec![1.0 - error.map(|a| a.powi(2)).mean().unwrap()];
-    Array2::from_shape_vec((1, 1), acc).unwrap()
+    unit_step_function(activation)
 }
 
 pub fn train(
