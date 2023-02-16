@@ -4,7 +4,7 @@ import numpy as np
 import timeit
 from sklearn.linear_model import Perceptron as SKPerceptron
 
-TIMEIT_NUMBER = 100
+TIMEIT_NUMBER = 1000
 
 
 class BasicPerceptron:
