@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use numpy::ndarray::{s, Array2, ArrayView2};
+use numpy::ndarray::{s, Array2, ArrayView2, Zip};
 
 fn accuracy(error: Array2<f64>) -> Array2<f64> {
     let acc = vec![1.0 - error.map(|a| a.powi(2)).mean().unwrap()];
@@ -24,29 +24,28 @@ pub fn train(
     alpha: f64,
     n_epoch: i64,
 ) -> (Array2<f64>, Array2<f64>) {
-    let features = x.dim().1 + 1;
+    let features = x.dim().1;
     let x_size = x.dim().0;
-    let mut weights: Array2<f64> = Array2::zeros((features, 1));
+    let mut weights: Array2<f64> = Array2::zeros((features + 1, 1));
     let mut error: Array2<f64> = Array2::zeros((x_size, 1));
 
     for _epoch in 0..n_epoch {
         let y_hat = predict(&weights.view(), &x);
         error = y - y_hat;
+        let update = error.map(|e| e * alpha);
 
-        for it in x.outer_iter().zip(error.outer_iter()) {
-            let (xi, e) = it;
-            let update = e[[0]] * alpha;
-            let mut weight_count = 0;
-            for mut w in weights.outer_iter_mut() {
-                if weight_count == 0 {
-                    w.slice_mut(s![0]).add_assign(update);
-                } else {
-                    w.slice_mut(s![0])
-                        .add_assign(xi[[weight_count - 1]] * update);
-                }
-                weight_count += 1;
-            }
-        }
+        weights.slice_mut(s![0, ..]).add_assign(update.sum());
+
+        let update = update
+            .into_shape((1, x_size))
+            .unwrap()
+            .dot(x)
+            .into_shape((features, 1))
+            .unwrap();
+
+        Zip::from(&mut weights.slice_mut(s![1.., ..]))
+            .and(&update)
+            .for_each(|w, u| *w = *w + u);
     }
     let acc = accuracy(error);
     (weights, acc)
