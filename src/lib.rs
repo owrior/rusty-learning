@@ -1,5 +1,4 @@
-use numpy::ndarray::s;
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::{prelude::*, types::PyTuple};
 
 #[pymodule]
@@ -22,16 +21,12 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
     #[pyfn(m)]
     fn predict<'py>(
         py: Python<'py>,
-        weights: PyReadonlyArray1<f64>,
+        weights: PyReadonlyArray2<f64>,
         x: PyReadonlyArray2<f64>,
     ) -> &'py PyArray2<f64> {
-        let weights_array = weights.to_owned_array();
+        let weights_array = weights.as_array();
         let x_array = x.as_array();
-
-        let bias = weights_array[[0]];
-        let _weights = weights_array.slice_move(s![1..]);
-
-        let res = perceptron::predict(&bias, &_weights, &x_array);
+        let res = perceptron::predict(&weights_array, &x_array);
         res.into_pyarray(py)
     }
     Ok(())
@@ -40,23 +35,19 @@ fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
 mod perceptron {
     use std::ops::AddAssign;
 
-    use numpy::ndarray::{arr1, s, Array1, Array2, ArrayView2, Axis};
+    use numpy::ndarray::{s, Array2, ArrayView2};
 
-    pub fn predict(bias: &f64, _weights: &Array1<f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
-        let features = x.dim().1;
-        let weights = _weights.slice(s![..]).into_shape((features, 1)).unwrap();
-        let activation = x.dot(&weights).mapv(|v| v + bias);
+    pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
+        let bias = &weights.slice(s![0, ..]);
+        let _weights = &weights.slice(s![1.., ..]);
+        let activation = x.dot(_weights) + bias;
         // Return activation
-        step_function(activation)
-    }
-
-    fn step_function(activation: Array2<f64>) -> Array2<f64> {
         activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
     }
 
-    fn accuracy(error: Array2<f64>) -> Array1<f64> {
+    fn accuracy(error: Array2<f64>) -> Array2<f64> {
         let acc = vec![1.0 - error.map(|a| a.powi(2)).mean().unwrap()];
-        Array1::from_vec(acc)
+        Array2::from_shape_vec((1, 1), acc).unwrap()
     }
 
     pub fn train(
@@ -64,28 +55,32 @@ mod perceptron {
         y: &ArrayView2<'_, f64>,
         alpha: f64,
         n_epoch: i64,
-    ) -> (Array1<f64>, Array1<f64>) {
-        let features = x.dim().1;
+    ) -> (Array2<f64>, Array2<f64>) {
+        let features = x.dim().1 + 1;
         let x_size = x.dim().0;
-        let mut bias: f64 = 0.0;
-        let mut weights: Array1<f64> = Array1::zeros(features);
+        let mut weights: Array2<f64> = Array2::zeros((features, 1));
         let mut error: Array2<f64> = Array2::zeros((x_size, 1));
 
         for _epoch in 0..n_epoch {
-            let y_hat = predict(&bias, &weights, &x);
+            let y_hat = predict(&weights.view(), &x);
             error = y - y_hat;
 
             for it in x.outer_iter().zip(error.outer_iter()) {
                 let (xi, e) = it;
                 let update = e[[0]] * alpha;
-
-                bias += update;
-                weights.add_assign(&xi.map(|v| v * update));
+                let mut weight_count = 0;
+                for mut w in weights.outer_iter_mut() {
+                    if weight_count == 0 {
+                        w.slice_mut(s![0]).add_assign(update);
+                    } else {
+                        w.slice_mut(s![0])
+                            .add_assign(xi[[weight_count - 1]] * update);
+                    }
+                    weight_count += 1;
+                }
             }
         }
         let acc = accuracy(error);
-        let mut weights_res = arr1(&[bias]);
-        weights_res.append(Axis(0), weights.view()).unwrap();
-        (weights_res, acc)
+        (weights, acc)
     }
 }
