@@ -39,7 +39,7 @@ mod perceptron {
 
     pub fn predict(weights: &ArrayView2<'_, f64>, x: &ArrayView2<'_, f64>) -> Array2<f64> {
         let bias = &weights.slice(s![0, ..]);
-        let _weights = &weights.slice(s![1..;-1, ..]);
+        let _weights = &weights.slice(s![1.., ..]);
         let activation = x.dot(_weights) + bias;
         // Return activation
         activation.mapv(|v| if v >= 0.0 { 1.0 } else { 0.0 })
@@ -74,7 +74,7 @@ mod perceptron {
                         w.slice_mut(s![0]).add_assign(update);
                     } else {
                         w.slice_mut(s![0])
-                            .add_assign(xi[[2 - weight_count]] * update);
+                            .add_assign(xi[[weight_count - 1]] * update);
                     }
                     weight_count += 1;
                 }
