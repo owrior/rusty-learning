@@ -88,7 +88,7 @@ def test_benchmark_train_sklearn(separable_data):
     )
 
 
-@pytest.skip
+@pytest.mark.skip
 def test_benchmark_train_torch(separable_data):
     import torch
 
