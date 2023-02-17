@@ -3,7 +3,6 @@ import rusty_learning as rl
 import numpy as np
 import timeit
 from sklearn.linear_model import Perceptron as SKPerceptron
-import torch
 
 TIMEIT_NUMBER = 1000
 
@@ -91,6 +90,8 @@ def test_benchmark_train_sklearn(separable_data):
 
 @pytest.skip
 def test_benchmark_train_torch(separable_data):
+    import torch
+
     X, y = separable_data
 
     # Calculate rust implemted time
