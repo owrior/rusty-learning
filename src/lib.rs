@@ -1,39 +1,69 @@
+use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
-use pyo3::{prelude::*, types::PyTuple};
+use pyo3::prelude::*;
 
 mod algo;
 use algo::*;
 
-#[pyfunction]
-fn train<'py>(
-    py: Python<'py>,
-    x: PyReadonlyArray2<f64>,
-    y: PyReadonlyArray2<f64>,
+#[pyclass]
+struct Perceptron {
+    #[pyo3(get)]
     alpha: f64,
-    n_epoch: i64,
-) -> &'py PyTuple {
-    let x_array = x.as_array();
-    let y_array = y.as_array();
-
-    let res = perceptron::train(&x_array, &y_array, alpha, n_epoch);
-    PyTuple::new(py, vec![res.0.into_pyarray(py), res.1.into_pyarray(py)])
+    #[pyo3(get)]
+    n_epoch: u64,
+    weights: Array2<f64>,
 }
 
-#[pyfunction]
-fn predict<'py>(
-    py: Python<'py>,
-    weights: PyReadonlyArray2<f64>,
-    x: PyReadonlyArray2<f64>,
-) -> &'py PyArray2<f64> {
-    let weights_array = weights.as_array();
-    let x_array = x.as_array();
-    let res = perceptron::predict(&weights_array, &x_array);
-    res.into_pyarray(py)
+#[pymethods]
+impl Perceptron {
+    #[new]
+    pub fn new(alpha: f64, n_epoch: u64, features: usize) -> Self {
+        let weights: Array2<f64> = Array2::zeros((features + 1, 1));
+        Perceptron {
+            alpha,
+            n_epoch,
+            weights,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Alpha({}), N_Epoch({}), Weights({})",
+            self.alpha,
+            self.n_epoch,
+            self.weights.t()
+        )
+    }
+
+    pub fn train<'py>(
+        &mut self,
+        x: PyReadonlyArray2<f64>,
+        y: PyReadonlyArray2<f64>,
+    ) -> PyResult<f64> {
+        let x_array = x.as_array();
+        let y_array = y.as_array();
+        let res = perceptron::train(&x_array, &y_array, self.alpha, self.n_epoch);
+        self.weights = res.0;
+        Ok(res.1)
+    }
+
+    pub fn predict<'py>(&self, py: Python<'py>, x: PyReadonlyArray2<f64>) -> &'py PyArray2<f64> {
+        let x_array = x.as_array();
+        let res = perceptron::predict(&self.weights, &x_array);
+        res.into_pyarray(py)
+    }
+
+    pub fn set_weights(&mut self, weights: PyReadonlyArray2<f64>) -> () {
+        self.weights = weights.as_array().to_owned();
+    }
+
+    pub fn get_weights<'py>(&self, py: Python<'py>) -> &'py PyArray2<f64> {
+        self.weights.clone().into_pyarray(py)
+    }
 }
 
 #[pymodule]
 fn rusty_learning(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(train)).unwrap();
-    m.add_wrapped(wrap_pyfunction!(predict)).unwrap();
+    m.add_class::<Perceptron>()?;
     Ok(())
 }
