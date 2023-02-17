@@ -3,6 +3,7 @@ import rusty_learning as rl
 import numpy as np
 import timeit
 from sklearn.linear_model import Perceptron as SKPerceptron
+import torch
 
 TIMEIT_NUMBER = 1000
 
@@ -84,6 +85,55 @@ def test_benchmark_train_sklearn(separable_data):
 
     print(
         f"Rust implementation: {rl_time}, Sklearn implementation: {comp_time}\n"
+        f"Multiple: {comp_time / rl_time}, {'Faster' if rl_time < comp_time else 'Slower'}"
+    )
+
+
+@pytest.skip
+def test_benchmark_train_torch(separable_data):
+    X, y = separable_data
+
+    # Calculate rust implemted time
+    rl_time = np.round(
+        timeit.timeit(
+            lambda: rl.train(
+                X, y.reshape((-1, 1)).astype(float), alpha=0.01, n_epoch=1000
+            ),
+            number=TIMEIT_NUMBER,
+        ),
+        decimals=2,
+    )
+
+    # Calculate torch time
+    input_size = 2
+    hidden_size = 1
+    output_size = 1
+    learning_rate = 0.01
+
+    X_t = torch.from_numpy(X).double()
+    y_t = torch.from_numpy(y).double()
+
+    def train_torch(x, y, w1, b1):
+        for _ in range(1, 1000):
+            y_pred = x.matmul(w1).clamp(min=0).add(b1)
+            loss = (y_pred - y).pow(2).sum()
+            w1.retain_grad()
+            b1.retain_grad()
+            loss.backward()
+            with torch.no_grad():
+                w1 -= learning_rate * w1.grad
+                b1 -= learning_rate * b1.grad
+
+    w1 = torch.rand(input_size, hidden_size, requires_grad=True).double()
+    b1 = torch.rand(hidden_size, output_size, requires_grad=True).double()
+
+    comp_time = np.round(
+        timeit.timeit(lambda: train_torch(X_t, y_t, w1, b1), number=TIMEIT_NUMBER),
+        decimals=2,
+    )
+
+    print(
+        f"Rust implementation: {rl_time}, torch implementation: {comp_time}\n"
         f"Multiple: {comp_time / rl_time}, {'Faster' if rl_time < comp_time else 'Slower'}"
     )
 
