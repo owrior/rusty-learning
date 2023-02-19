@@ -18,12 +18,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Create venv
-        with:
-          command: make venv
+        run: make venv
 
       - name: Test
-        with:
-          command: make test
+        with: make test
 
   windows:
     runs-on: windows-latest
@@ -36,12 +34,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Create venv
-        with:
-          command: make venv
+        run: make venv
 
       - name: Test
-        with:
-          command: make test
+        with: make test
 
   macos:
     runs-on: macos-latest
@@ -54,9 +50,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Create venv
-        with:
-          command: make venv
+        run: make venv
 
       - name: Test
-        with:
-          command: make test
+        with: make test
