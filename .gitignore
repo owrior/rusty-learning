@@ -11,3 +11,5 @@ Cargo.lock
 
 # environment
 venv
+
+__pycache__
