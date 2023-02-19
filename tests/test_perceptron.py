@@ -46,29 +46,29 @@ class BasicPerceptron:
 def test_perceptron_predict(separable_data):
     weights = np.array([3.53, 1.59407104, 0.83434904])
     X, y = separable_data
-    p = rl.Perceptron(0.01, 100, X.shape[1])
-    p.set_weights(weights.reshape((-1, 1)))
+    p = rl.Perceptron(0.01, 100)
+    p.weights = weights.reshape((-1, 1))
     res = p.predict(X)
     np.testing.assert_array_equal(res.flatten().astype(int), y)
 
 
 def test_perceptron_train(separable_data):
     X, y = separable_data
-    p = rl.Perceptron(0.01, 100, X.shape[1])
-    accuracy = p.train(X, y.reshape((-1, 1)).astype(float))
+    p = rl.Perceptron(0.01, 100)
+    p.train(X, y.reshape((-1, 1)).astype(float))
 
     y_hat = p.predict(X).flatten()
     np.testing.assert_almost_equal(
         p.weights.flatten(), np.array([3.53, 1.59407104, 0.83434904])
     )
-    assert 1 - ((y - y_hat.flatten()) ** 2).mean() == accuracy
+    assert ((y - y_hat.flatten()) ** 2).mean() == 0
 
 
 def test_benchmark_train_sklearn(separable_data):
     X, y = separable_data
 
     # Calculate rust implemted time
-    p = rl.Perceptron(0.01, 100, X.shape[1])
+    p = rl.Perceptron(0.01, 100)
     rl_time = np.round(
         timeit.timeit(
             lambda: p.train(X, y.reshape((-1, 1)).astype(float)),
@@ -96,7 +96,7 @@ def test_benchmark_train_torch(separable_data):
     X, y = separable_data
 
     # Calculate rust implemted time
-    p = rl.Perceptron(0.01, 100, X.shape[1])
+    p = rl.Perceptron(0.01, 100)
     rl_time = np.round(
         timeit.timeit(
             lambda: p.train(X, y.reshape((-1, 1)).astype(float)),
@@ -144,7 +144,7 @@ def test_benchmark_train_numpy(separable_data):
     X, y = separable_data
 
     # Calculate rust implemted time
-    p = rl.Perceptron(0.01, 100, X.shape[1])
+    p = rl.Perceptron(0.01, 100)
     rl_time = np.round(
         timeit.timeit(
             lambda: p.train(X, y.reshape((-1, 1)).astype(float)),
