@@ -56,12 +56,10 @@ def test_perceptron_train(separable_data):
     X, y = separable_data
     p = rl.Perceptron(0.01, 100, X.shape[1])
     accuracy = p.train(X, y.reshape((-1, 1)).astype(float))
-    weights = p.get_weights()
 
     y_hat = p.predict(X).flatten()
-
     np.testing.assert_almost_equal(
-        weights.flatten(), np.array([3.53, 1.59407104, 0.83434904])
+        p.weights.flatten(), np.array([3.53, 1.59407104, 0.83434904])
     )
     assert 1 - ((y - y_hat.flatten()) ** 2).mean() == accuracy
 
