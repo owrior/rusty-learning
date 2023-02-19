@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -21,13 +20,12 @@ jobs:
         run: make venv
 
       - name: Test
-        with: make test
+        run: make test
 
   windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -37,13 +35,12 @@ jobs:
         run: make venv
 
       - name: Test
-        with: make test
+        run: make test
 
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -53,4 +50,4 @@ jobs:
         run: make venv
 
       - name: Test
-        with: make test
+        run: make test
