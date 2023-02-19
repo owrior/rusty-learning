@@ -2,13 +2,9 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main]
 
 jobs:
   linux:
@@ -20,8 +16,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "py-polars/requirements-dev.txt"
 
       - name: Create venv
         with:
@@ -35,26 +29,34 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: messense/maturin-action@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          command: build
-          args: --release -o dist --find-interpreter
-      - name: Upload wheels
-        uses: actions/upload-artifact@v2
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create venv
         with:
-          name: wheels
-          path: dist
+          command: make venv
+
+      - name: Test
+        with:
+          command: make test
 
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: messense/maturin-action@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          command: build
-          args: --release -o dist --universal2 --find-interpreter
-      - name: Upload wheels
-        uses: actions/upload-artifact@v2
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create venv
         with:
-          name: wheels
-          path: dist
+          command: make venv
+
+      - name: Test
+        with:
+          command: make test
